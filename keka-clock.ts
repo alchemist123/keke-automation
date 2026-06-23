@@ -66,17 +66,41 @@ if (day === 0 || day === 6) {
     await timeWidget.waitFor({ state: 'visible', timeout: 20000 });
     console.log('Time Today widget loaded.');
 
+    // Wait for the clock widget inside "Time Today" to fully render
+    await page.waitForTimeout(3000);
+
     const label = action === 'in'
-      ? /web clock-?in|clock-?in/i
-      : /web clock-?out|clock-?out/i;
+      ? /clock[- ]?in/i
+      : /clock[- ]?out/i;
 
-    // Log all visible buttons for debugging
-    const allButtons = await page.getByRole('button').allTextContents();
-    console.log('Buttons on page:', allButtons.filter(t => t.trim()).join(', '));
+    // The clock button may not be a <button> element — try multiple selectors
+    const candidates = [
+      page.getByRole('button', { name: label }).first(),
+      page.locator(`text=${action === 'in' ? 'Clock-in' : 'Clock-out'}`).first(),
+      page.locator(`text=${action === 'in' ? 'Clock In' : 'Clock Out'}`).first(),
+      page.locator(`text=${action === 'in' ? 'Web Clock In' : 'Web Clock Out'}`).first(),
+    ];
 
-    const button = page.getByRole('button', { name: label }).first();
-    await button.waitFor({ state: 'visible', timeout: 15000 });
-    await button.click();
+    let clicked = false;
+    for (const candidate of candidates) {
+      try {
+        await candidate.waitFor({ state: 'visible', timeout: 5000 });
+        console.log(`Found clock element, clicking...`);
+        await candidate.click();
+        clicked = true;
+        break;
+      } catch {
+        continue;
+      }
+    }
+
+    if (!clicked) {
+      // Dump page content near Time Today for debugging
+      const html = await page.locator('body').innerHTML();
+      const clockMatch = html.match(/clock.{0,100}/gi);
+      console.log('Clock-related HTML fragments:', clockMatch?.slice(0, 5));
+      throw new Error(`Could not find clock-${action} button with any selector.`);
+    }
     console.log(`Clicked ${action} button, waiting for confirmation...`);
 
     await page.waitForTimeout(2000);
