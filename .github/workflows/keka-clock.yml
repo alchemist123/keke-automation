@@ -1,0 +1,46 @@
+# .github/workflows/keka-clock.yml
+# Runs in GitHub's cloud, so it fires even when your laptop is off.
+# GitHub cron is in UTC. IST = UTC+5:30, so:
+#   09:00 IST -> 03:30 UTC   (clock-in)
+#   19:00 IST -> 13:30 UTC   (clock-out)
+name: Keka clock
+
+on:
+  schedule:
+    - cron: '30 3 * * 1-5'   # ~09:00 IST, Mon-Fri
+    - cron: '30 13 * * 1-5'  # ~19:00 IST, Mon-Fri
+  workflow_dispatch: {}
+
+jobs:
+  clock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+
+      - name: Decide in vs out by IST hour
+        id: which
+        run: |
+          HOUR=$(TZ=Asia/Kolkata date +%H)
+          if [ "$HOUR" -lt 12 ]; then
+            echo "action=in" >> "$GITHUB_OUTPUT"
+          else
+            echo "action=out" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: npx ts-node keka-clock.ts ${{ steps.which.outputs.action }}
+        env:
+          KEKA_URL: ${{ secrets.KEKA_URL }}
+          KEKA_SESSION: ${{ secrets.KEKA_SESSION }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: keka-screenshots-${{ github.run_id }}
+          path: '*.png'
+          if-no-files-found: ignore

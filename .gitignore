@@ -1,0 +1,4 @@
+node_modules/
+keka-session.json
+.env
+*.png

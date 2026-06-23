@@ -1,0 +1,18 @@
+{
+  "name": "keka-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automated Keka web clock-in/clock-out",
+  "scripts": {
+    "login": "ts-node -r dotenv/config keka-login.ts",
+    "clock-in": "ts-node -r dotenv/config keka-clock.ts in",
+    "clock-out": "ts-node -r dotenv/config keka-clock.ts out",
+    "upload-session": "bash upload-session.sh"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "playwright": "^1.52.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
