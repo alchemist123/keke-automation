@@ -1,14 +1,14 @@
 # .github/workflows/keka-clock.yml
 # Runs in GitHub's cloud, so it fires even when your laptop is off.
 # GitHub cron is in UTC. IST = UTC+5:30, so:
-#   09:00 IST -> 03:30 UTC   (clock-in)
-#   19:00 IST -> 13:30 UTC   (clock-out)
+#   08:30 IST -> 03:00 UTC   (clock-in)
+#   21:00 IST -> 15:30 UTC   (clock-out)
 name: Keka clock
 
 on:
   schedule:
-    - cron: '30 3 * * 1-5'   # ~09:00 IST, Mon-Fri
-    - cron: '30 13 * * 1-5'  # ~19:00 IST, Mon-Fri
+    - cron: '0 3 * * 1-5'    # ~08:30 IST, Mon-Fri
+    - cron: '30 15 * * 1-5'  # ~21:00 IST, Mon-Fri
   workflow_dispatch: {}
 
 jobs:

@@ -54,6 +54,19 @@ if (day === 0 || day === 6) {
     const button = page.getByRole('button', { name: label }).first();
     await button.waitFor({ state: 'visible', timeout: 15000 });
     await button.click();
+    console.log(`Clicked ${action} button, waiting for confirmation...`);
+
+    await page.waitForTimeout(2000);
+
+    // Keka shows a confirmation dialog — click the confirm button
+    const confirmBtn = page.getByRole('button', { name: /confirm|yes|ok|clock-?out|clock-?in/i }).first();
+    try {
+      await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
+      await confirmBtn.click();
+      console.log('Clicked confirmation button.');
+    } catch {
+      console.log('No confirmation dialog found — assuming direct action.');
+    }
 
     await page.waitForTimeout(3000);
     await page.screenshot({ path: `keka-${action}-${Date.now()}.png` });
