@@ -61,16 +61,11 @@ if (day === 0 || day === 6) {
     const visible = await button.isVisible().catch(() => false);
 
     if (!visible) {
-      // Dashboard "Welcome" view may not show the clock widget — navigate via sidebar + tab
-      console.log('Clock button not on dashboard, navigating to Me > Attendance...');
-      await page.getByRole('link', { name: /\bme\b/i }).first().click();
-      await page.waitForLoadState('networkidle');
-      const attTab = page.getByRole('link', { name: /attendance/i }).first();
-      await attTab.waitFor({ state: 'visible', timeout: 10000 });
-      await attTab.click();
-      await page.waitForLoadState('networkidle');
+      console.log('Clock button not found, navigating to home dashboard...');
+      const baseUrl = KEKA_URL.replace(/\/$/, '');
+      await page.goto(`${baseUrl}/#/home/dashboard`, { waitUntil: 'networkidle' });
       await page.waitForTimeout(3000);
-      await page.screenshot({ path: `keka-attendance-${Date.now()}.png` });
+      await page.screenshot({ path: `keka-dashboard-${Date.now()}.png` });
       button = page.getByRole('button', { name: label }).first();
     }
 
