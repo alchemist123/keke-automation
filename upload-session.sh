@@ -11,15 +11,15 @@ if ! command -v gh &>/dev/null; then
   exit 1
 fi
 
-# Strip localStorage (origins) — only cookies are needed for auth.
-# Full session is ~180KB (over GitHub's 48KB secret limit); cookies alone are ~6KB.
-SLIM=$(python3 -c "
-import json, sys
-with open('keka-session.json') as f:
-    d = json.load(f)
-json.dump({'cookies': d['cookies'], 'origins': []}, sys.stdout, separators=(',', ':'))
-")
+# Gzip the full session (including localStorage) then base64-encode.
+# Raw JSON is ~180KB (over GitHub's 48KB secret limit); gzipped is ~37KB.
+SESSION_B64=$(gzip -c keka-session.json | base64)
+SIZE=$(echo "$SESSION_B64" | wc -c | tr -d ' ')
 
-SESSION_B64=$(echo "$SLIM" | base64)
+if [ "$SIZE" -gt 48000 ]; then
+  echo "Error: compressed session is ${SIZE} bytes — still over GitHub's 48KB limit."
+  exit 1
+fi
+
 echo "$SESSION_B64" | gh secret set KEKA_SESSION
-echo "Uploaded session to GitHub secret KEKA_SESSION (cookies only, $(echo "$SESSION_B64" | wc -c | tr -d ' ') bytes)."
+echo "Uploaded session to GitHub secret KEKA_SESSION (gzipped, ${SIZE} bytes)."

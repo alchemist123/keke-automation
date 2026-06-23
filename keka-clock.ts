@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import { existsSync, writeFileSync } from 'fs';
+import { gunzipSync } from 'zlib';
 
 const action = process.argv[2] as 'in' | 'out';
 if (action !== 'in' && action !== 'out') {
@@ -23,8 +24,10 @@ if (!existsSync(sessionPath)) {
     );
     process.exit(1);
   }
-  writeFileSync(sessionPath, Buffer.from(KEKA_SESSION, 'base64').toString('utf-8'));
-  console.log('Decoded KEKA_SESSION env var into keka-session.json.');
+  const compressed = Buffer.from(KEKA_SESSION, 'base64');
+  const json = gunzipSync(compressed).toString('utf-8');
+  writeFileSync(sessionPath, json);
+  console.log('Decoded and decompressed KEKA_SESSION env var into keka-session.json.');
 }
 
 const day = new Date().getDay();
@@ -52,7 +55,14 @@ if (day === 0 || day === 6) {
       : /web clock-?out|clock-?out/i;
 
     const button = page.getByRole('button', { name: label }).first();
-    await button.waitFor({ state: 'visible', timeout: 15000 });
+    try {
+      await button.waitFor({ state: 'visible', timeout: 10000 });
+    } catch {
+      // Button may be below the fold — scroll down to find it
+      console.log('Button not visible, scrolling to find it...');
+      await button.scrollIntoViewIfNeeded();
+      await button.waitFor({ state: 'visible', timeout: 10000 });
+    }
     await button.click();
     console.log(`Clicked ${action} button, waiting for confirmation...`);
 
