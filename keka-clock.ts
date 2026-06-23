@@ -61,25 +61,31 @@ if (day === 0 || day === 6) {
       await page.goto(dashUrl, { waitUntil: 'networkidle' });
     }
 
-    // Wait for the "Time Today" widget to fully load
-    const timeWidget = page.getByText(/time today/i).first();
-    await timeWidget.waitFor({ state: 'visible', timeout: 20000 });
-    console.log('Time Today widget loaded.');
+    // Wait for any clock button to appear on the page (may take time to render)
+    const anyClockBtn = page.locator('button:has-text("Clock")').first();
+    await anyClockBtn.waitFor({ state: 'visible', timeout: 30000 });
 
-    // Wait for the clockin-widget to render inside "Time Today"
-    const clockWidget = page.locator('clockin-widget');
-    await clockWidget.waitFor({ state: 'visible', timeout: 15000 });
-    console.log('Clock widget loaded.');
+    // Log all clock-related buttons
+    const allClockBtns = await page.locator('button:has-text("Clock")').allTextContents();
+    console.log('Clock buttons found:', allClockBtns.map(t => t.trim()));
 
-    // Button text includes a suffix like "(WFH)" — match with regex
+    // Find the button matching our action
     const label = action === 'in'
       ? /clock[- ]?in/i
       : /clock[- ]?out/i;
 
-    const button = clockWidget.getByRole('button', { name: label }).first();
-    await button.waitFor({ state: 'visible', timeout: 10000 });
+    const button = page.locator('button').filter({ hasText: label }).first();
+    const count = await page.locator('button').filter({ hasText: label }).count();
+
+    if (count === 0) {
+      const available = allClockBtns.map(t => t.trim()).join(', ');
+      console.log(`No clock-${action} button available (found: ${available}). Already clocked ${action}?`);
+      await page.screenshot({ path: `keka-${action}-skip-${Date.now()}.png` });
+      process.exit(0);
+    }
+
     const buttonText = await button.textContent();
-    console.log(`Found button: "${buttonText?.trim()}", clicking...`);
+    console.log(`Clicking: "${buttonText?.trim()}"...`);
     await button.click();
 
     await page.waitForTimeout(2000);
