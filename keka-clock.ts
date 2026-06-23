@@ -66,42 +66,21 @@ if (day === 0 || day === 6) {
     await timeWidget.waitFor({ state: 'visible', timeout: 20000 });
     console.log('Time Today widget loaded.');
 
-    // Wait for the clock widget inside "Time Today" to fully render
-    await page.waitForTimeout(3000);
+    // Wait for the clockin-widget to render inside "Time Today"
+    const clockWidget = page.locator('clockin-widget');
+    await clockWidget.waitFor({ state: 'visible', timeout: 15000 });
+    console.log('Clock widget loaded.');
 
+    // Button text includes a suffix like "(WFH)" — match with regex
     const label = action === 'in'
       ? /clock[- ]?in/i
       : /clock[- ]?out/i;
 
-    // The clock button may not be a <button> element — try multiple selectors
-    const candidates = [
-      page.getByRole('button', { name: label }).first(),
-      page.locator(`text=${action === 'in' ? 'Clock-in' : 'Clock-out'}`).first(),
-      page.locator(`text=${action === 'in' ? 'Clock In' : 'Clock Out'}`).first(),
-      page.locator(`text=${action === 'in' ? 'Web Clock In' : 'Web Clock Out'}`).first(),
-    ];
-
-    let clicked = false;
-    for (const candidate of candidates) {
-      try {
-        await candidate.waitFor({ state: 'visible', timeout: 5000 });
-        console.log(`Found clock element, clicking...`);
-        await candidate.click();
-        clicked = true;
-        break;
-      } catch {
-        continue;
-      }
-    }
-
-    if (!clicked) {
-      // Dump page content near Time Today for debugging
-      const html = await page.locator('body').innerHTML();
-      const clockMatch = html.match(/clock.{0,100}/gi);
-      console.log('Clock-related HTML fragments:', clockMatch?.slice(0, 5));
-      throw new Error(`Could not find clock-${action} button with any selector.`);
-    }
-    console.log(`Clicked ${action} button, waiting for confirmation...`);
+    const button = clockWidget.getByRole('button', { name: label }).first();
+    await button.waitFor({ state: 'visible', timeout: 10000 });
+    const buttonText = await button.textContent();
+    console.log(`Found button: "${buttonText?.trim()}", clicking...`);
+    await button.click();
 
     await page.waitForTimeout(2000);
 
