@@ -38,7 +38,10 @@ if (day === 0 || day === 6) {
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ storageState: sessionPath });
+  const context = await browser.newContext({
+    storageState: sessionPath,
+    viewport: { width: 1920, height: 1080 },
+  });
   const page = await context.newPage();
 
   try {
@@ -54,15 +57,20 @@ if (day === 0 || day === 6) {
       ? /web clock-?in|clock-?in/i
       : /web clock-?out|clock-?out/i;
 
-    const button = page.getByRole('button', { name: label }).first();
-    try {
-      await button.waitFor({ state: 'visible', timeout: 10000 });
-    } catch {
-      // Button may be below the fold — scroll down to find it
-      console.log('Button not visible, scrolling to find it...');
-      await button.scrollIntoViewIfNeeded();
-      await button.waitFor({ state: 'visible', timeout: 10000 });
+    let button = page.getByRole('button', { name: label }).first();
+    const visible = await button.isVisible().catch(() => false);
+
+    if (!visible) {
+      // Dashboard "Welcome" view may not show the clock widget — go to attendance page
+      console.log('Clock button not on dashboard, navigating to attendance page...');
+      const baseUrl = KEKA_URL.replace(/\/$/, '');
+      await page.goto(`${baseUrl}/#/me/attendance/me`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(3000);
+      await page.screenshot({ path: `keka-attendance-${Date.now()}.png` });
+      button = page.getByRole('button', { name: label }).first();
     }
+
+    await button.waitFor({ state: 'visible', timeout: 15000 });
     await button.click();
     console.log(`Clicked ${action} button, waiting for confirmation...`);
 
