@@ -53,22 +53,28 @@ if (day === 0 || day === 6) {
       );
     }
 
+    // Navigate directly to the home dashboard where the clock widget lives
+    const baseUrl = KEKA_URL.replace(/\/$/, '');
+    const dashUrl = `${baseUrl}/#/home/dashboard`;
+    if (!page.url().includes('#/home/dashboard')) {
+      console.log('Navigating to home dashboard...');
+      await page.goto(dashUrl, { waitUntil: 'networkidle' });
+    }
+
+    // Wait for the "Time Today" widget to fully load
+    const timeWidget = page.getByText(/time today/i).first();
+    await timeWidget.waitFor({ state: 'visible', timeout: 20000 });
+    console.log('Time Today widget loaded.');
+
     const label = action === 'in'
       ? /web clock-?in|clock-?in/i
       : /web clock-?out|clock-?out/i;
 
-    let button = page.getByRole('button', { name: label }).first();
-    const visible = await button.isVisible().catch(() => false);
+    // Log all visible buttons for debugging
+    const allButtons = await page.getByRole('button').allTextContents();
+    console.log('Buttons on page:', allButtons.filter(t => t.trim()).join(', '));
 
-    if (!visible) {
-      console.log('Clock button not found, navigating to home dashboard...');
-      const baseUrl = KEKA_URL.replace(/\/$/, '');
-      await page.goto(`${baseUrl}/#/home/dashboard`, { waitUntil: 'networkidle' });
-      await page.waitForTimeout(3000);
-      await page.screenshot({ path: `keka-dashboard-${Date.now()}.png` });
-      button = page.getByRole('button', { name: label }).first();
-    }
-
+    const button = page.getByRole('button', { name: label }).first();
     await button.waitFor({ state: 'visible', timeout: 15000 });
     await button.click();
     console.log(`Clicked ${action} button, waiting for confirmation...`);
