@@ -47,7 +47,9 @@ if (day === 0 || day === 6) {
   try {
     await page.goto(KEKA_URL, { waitUntil: 'networkidle' });
 
-    if (/login|signin/i.test(page.url())) {
+    const pageUrl = page.url();
+    const pageText = await page.textContent('body') || '';
+    if (/login|signin|authorize/i.test(pageUrl) || /login to keka|continue with password/i.test(pageText)) {
       throw new Error(
         'Session expired — run "npm run login" locally, then "npm run upload-session" to refresh.'
       );
