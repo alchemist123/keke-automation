@@ -1,14 +1,15 @@
 # .github/workflows/keka-clock.yml
 # Automated Keka clock-in/clock-out via GitHub Actions cron.
-# GitHub cron is in UTC. IST = UTC+5:30, so:
-#   08:30 IST -> 03:00 UTC   (clock-in)
-#   21:00 IST -> 15:30 UTC   (clock-out)
+# GitHub cron is in UTC. IST = UTC+5:30.
+# Avoid minute 0 and 30 — GitHub cron load peaks at those times.
+#   08:17 IST -> 02:47 UTC   (clock-in)
+#   20:47 IST -> 15:17 UTC   (clock-out)
 name: Keka clock
 
 on:
   schedule:
-    - cron: '0 3 * * 1-5'    # ~08:30 IST, Mon-Fri
-    - cron: '30 15 * * 1-5'  # ~21:00 IST, Mon-Fri
+    - cron: '47 2 * * 1-5'   # ~08:17 IST, Mon-Fri (clock-in)
+    - cron: '17 15 * * 1-5'  # ~20:47 IST, Mon-Fri (clock-out)
   workflow_dispatch: {}
 
 jobs:
