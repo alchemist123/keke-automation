@@ -63,13 +63,28 @@ if (day === 0 || day === 6) {
       await page.goto(dashUrl, { waitUntil: 'networkidle' });
     }
 
+    // Diagnostic screenshot so we can see exactly what the page looks like
+    await page.screenshot({ path: `keka-${action}-diag-${Date.now()}.png` });
+
     // Wait for any clock button to appear on the page (may take time to render)
     const anyClockBtn = page.locator('button:has-text("Clock")').first();
-    await anyClockBtn.waitFor({ state: 'visible', timeout: 30000 });
+    try {
+      await anyClockBtn.waitFor({ state: 'visible', timeout: 30000 });
+    } catch {
+      // No "Clock" button appeared — take screenshot and bail
+      await page.screenshot({ path: `keka-${action}-nowidget-${Date.now()}.png` });
+      console.log('Clock widget did not appear within 30s. Page state captured.');
+      process.exitCode = 1;
+      return;
+    }
 
     // Log all clock-related buttons
     const allClockBtns = await page.locator('button:has-text("Clock")').allTextContents();
     console.log('Clock buttons found:', allClockBtns.map(t => t.trim()));
+
+    // Also log ALL visible buttons to catch unexpected labels
+    const allBtns = await page.locator('button:visible').allTextContents();
+    console.log('All visible buttons:', allBtns.map(t => t.trim()).filter(Boolean));
 
     // Find the button matching our action
     const label = action === 'in'
